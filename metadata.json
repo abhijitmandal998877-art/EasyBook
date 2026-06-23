@@ -1,0 +1,6 @@
+{
+  "name": "EasyBook",
+  "description": "A feature-rich digital ledger for shopkeepers to manage customer credits and payments with multi-currency, sound triggers, local-to-cloud Firebase Sync, and automatic reminder alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer accent decorative circle -->
+    <path
+        android:fillColor="#15FF8906"
+        android:pathData="M54,12A42,42 0,1 0,96,54A42,42 0,0 0,54,12Z" />
+
+    <!-- Sleek ledger book design -->
+    <path
+        android:fillColor="#FF8906"
+        android:pathData="M32,24h36a6,6 0,0 1,6 6v48a6,6 0,0 1,-6 6H32a4,4 0,0 1,-4 -4V28a4,4 0,0 1,4 -4z" />
+
+    <!-- Ledger pages layer -->
+    <path
+        android:fillColor="#FFFFFE"
+        android:pathData="M36,28h32a2,2 0,0 1,2 2v44a2,2 0,0 1,-2 2H36a2,2 0,0 1,-2 -2V30a2,2 0,0 1,2 -2z" />
+
+    <!-- Dollar / Rupee / Book lines detail -->
+    <path
+        android:fillColor="#0F0E17"
+        android:pathData="M40,38h24v4H40z M40,48h24v4H40z M40,58h16v4H40z" />
+
+    <!-- Green success bookmark badge -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M60,24h8v20l-4,-4l-4,4z" />
+</vector>

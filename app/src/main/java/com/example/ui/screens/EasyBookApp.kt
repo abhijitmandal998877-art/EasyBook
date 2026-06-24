@@ -112,6 +112,7 @@ import java.util.Locale
 
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -254,6 +255,7 @@ fun LoginScreen(viewModel: EasyBookViewModel) {
     val email by viewModel.loginEmail.collectAsState()
     val password by viewModel.loginPassword.collectAsState()
     var showForgotDialog by remember { mutableStateOf(false) }
+    var forgotEmailInput by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -319,7 +321,7 @@ fun LoginScreen(viewModel: EasyBookViewModel) {
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { viewModel.loginPassword.value = it.uppercase() },
+                    onValueChange = { viewModel.loginPassword.value = it },
                     label = { Text(viewModel.t("password"), color = CosmicTextDim) },
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -406,6 +408,13 @@ fun LoginScreen(viewModel: EasyBookViewModel) {
     }
 
     if (showForgotDialog) {
+        // Pre-fill input with email from the main screen if available
+        LaunchedEffect(showForgotDialog) {
+            if (forgotEmailInput.isEmpty() && email.isNotEmpty()) {
+                forgotEmailInput = email
+            }
+        }
+
         Dialog(onDismissRequest = { showForgotDialog = false }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = CosmicCard),
@@ -418,34 +427,71 @@ fun LoginScreen(viewModel: EasyBookViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Forgot",
+                        contentDescription = "Forgot Password",
                         tint = CosmicAccent,
                         modifier = Modifier.size(48.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        viewModel.t("spam_alert"),
+                        text = "Forgot Password",
                         color = CosmicText,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        viewModel.t("forgot_pwd_dialog"),
+                        text = "Enter your registered email address to receive password reset instructions.",
                         color = CosmicTextDim,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = forgotEmailInput,
+                        onValueChange = { forgotEmailInput = it },
+                        label = { Text("Registered Email Address", color = CosmicTextDim) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = CosmicText,
+                            unfocusedTextColor = CosmicText,
+                            focusedBorderColor = CosmicAccent,
+                            unfocusedBorderColor = CosmicTextDim.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("forgot_email_input")
+                    )
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = {
-                            viewModel.triggerFeedback(context)
-                            viewModel.forgotPassword(email) { _, _ -> }
-                            showForgotDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = CosmicAccent)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Text(viewModel.t("confirm"), color = CosmicText)
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.triggerFeedback(context)
+                                showForgotDialog = false
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = CosmicTextDim),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text(viewModel.t("cancel"))
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.triggerFeedback(context)
+                                viewModel.forgotPassword(forgotEmailInput) { success, msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    if (success) {
+                                        showForgotDialog = false
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CosmicAccent)
+                        ) {
+                            Text(viewModel.t("confirm"), color = CosmicText)
+                        }
                     }
                 }
             }
@@ -464,6 +510,10 @@ fun SignUpScreen(viewModel: EasyBookViewModel) {
     val password by viewModel.regPassword.collectAsState()
     var isLoading by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    BackHandler {
+        viewModel.currentScreen.value = "LOGIN"
+    }
 
     Column(
         modifier = Modifier
@@ -577,7 +627,7 @@ fun SignUpScreen(viewModel: EasyBookViewModel) {
                 item {
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { viewModel.regPassword.value = it.uppercase() },
+                        onValueChange = { viewModel.regPassword.value = it },
                         label = { Text(viewModel.t("password"), color = CosmicTextDim) },
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -1153,6 +1203,10 @@ fun CustomerDetailScreen(viewModel: EasyBookViewModel) {
     var showDeleteAuthDialog by remember { mutableStateOf(false) }
     var deletePasswordInput by remember { mutableStateOf("") }
 
+    BackHandler {
+        viewModel.currentScreen.value = "DASHBOARD"
+    }
+
     val currencySymbol = when (currency) {
         "INR" -> "₹"
         "USD" -> "$"
@@ -1385,7 +1439,7 @@ fun CustomerDetailScreen(viewModel: EasyBookViewModel) {
 
                     OutlinedTextField(
                         value = deletePasswordInput,
-                        onValueChange = { deletePasswordInput = it.uppercase() },
+                        onValueChange = { deletePasswordInput = it },
                         label = { Text("MERCHANT PASSWORD", color = CosmicTextDim) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
@@ -1420,7 +1474,7 @@ fun CustomerDetailScreen(viewModel: EasyBookViewModel) {
                         Button(
                             onClick = {
                                 viewModel.triggerFeedback(context)
-                                viewModel.deleteCustomer(deletePasswordInput) { success, msg ->
+                                viewModel.deleteCustomer(context, deletePasswordInput) { success, msg ->
                                     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                     if (success) {
                                         showDeleteAuthDialog = false
@@ -1653,6 +1707,10 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var deleteAccountPassInput by remember { mutableStateOf("") }
     var showEditProfileDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        viewModel.currentScreen.value = "DASHBOARD"
+    }
 
     Scaffold(
         topBar = {
@@ -1904,60 +1962,6 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
                                 )
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Sound Effects Toggle
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.VolumeUp, contentDescription = "Sound", tint = CosmicAccent)
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = viewModel.t("sound"), color = CosmicText, fontSize = 14.sp)
-                            }
-
-                            Switch(
-                                checked = owner?.soundEnabled ?: true,
-                                onCheckedChange = {
-                                    viewModel.triggerFeedback(context)
-                                    viewModel.changeSoundToggle(it)
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = CosmicPrimary,
-                                    checkedTrackColor = CosmicPrimary.copy(alpha = 0.3f)
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Vibration Toggle
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.VolumeUp, contentDescription = "Vibration", tint = CosmicAccent) // Alternate icon
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = viewModel.t("vibration"), color = CosmicText, fontSize = 14.sp)
-                            }
-
-                            Switch(
-                                checked = owner?.vibrationEnabled ?: true,
-                                onCheckedChange = {
-                                    viewModel.triggerFeedback(context)
-                                    viewModel.changeVibrationToggle(it)
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = CosmicAccent,
-                                    checkedTrackColor = CosmicAccent.copy(alpha = 0.3f)
-                                )
-                            )
-                        }
                     }
                 }
             }
@@ -1974,7 +1978,7 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
 
                         OutlinedTextField(
                             value = oldPass,
-                            onValueChange = { viewModel.profileOldPassword.value = it.uppercase() },
+                            onValueChange = { viewModel.profileOldPassword.value = it },
                             label = { Text(viewModel.t("old_password"), color = CosmicTextDim) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
@@ -1991,7 +1995,7 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
 
                         OutlinedTextField(
                             value = newPass,
-                            onValueChange = { viewModel.profileNewPassword.value = it.uppercase() },
+                            onValueChange = { viewModel.profileNewPassword.value = it },
                             label = { Text(viewModel.t("new_password"), color = CosmicTextDim) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
@@ -2022,39 +2026,7 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
                 }
             }
 
-            // Interactive Rewarded Ad & Alarm Test triggers
-            item {
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CosmicCard)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Interactive Features Demo",
-                            color = CosmicAccent,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
 
-                        // Immediate Reminder Push trigger
-                        Button(
-                            onClick = {
-                                viewModel.triggerFeedback(context)
-                                viewModel.triggerImmediateDemoNotification(context)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = CosmicPrimary),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("TEST PUSH NOTIFICATION ALERT", color = CosmicDark, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                        }
-                    }
-                }
-            }
 
             // Logout & Account deletion options
             item {
@@ -2115,7 +2087,7 @@ fun SettingsScreen(viewModel: EasyBookViewModel) {
 
                     OutlinedTextField(
                         value = deleteAccountPassInput,
-                        onValueChange = { deleteAccountPassInput = it.uppercase() },
+                        onValueChange = { deleteAccountPassInput = it },
                         label = { Text("MERCHANT PASSWORD", color = CosmicTextDim) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),

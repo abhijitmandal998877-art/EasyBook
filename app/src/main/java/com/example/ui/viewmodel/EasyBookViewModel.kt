@@ -203,7 +203,7 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
             val shop = regShopName.value.uppercase().trim()
             val email = regEmail.value.lowercase().trim()
             val whatsApp = regWhatsApp.value.uppercase().trim()
-            val password = regPassword.value.uppercase().trim()
+            val password = regPassword.value.trim()
 
             if (name.isEmpty() || shop.isEmpty() || email.isEmpty() || whatsApp.isEmpty() || password.isEmpty()) {
                 onResult(false, t("error_fields"))
@@ -226,6 +226,11 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
                     _appLanguage.value = "EN"
                     _appCurrency.value = "INR"
                     _currentScreen.value = "DASHBOARD"
+                    NotificationHelper.sendNotification(
+                        context = context,
+                        title = "Signup Successful",
+                        message = "Welcome to EasyBook! Merchant $name has successfully signed up."
+                    )
                     onResult(true, "Registration Successful!")
                 },
                 onFailure = { err ->
@@ -238,7 +243,7 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
     fun login(context: Context, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
             val email = loginEmail.value.lowercase().trim()
-            val password = loginPassword.value.uppercase().trim()
+            val password = loginPassword.value.trim()
 
             if (email.isEmpty() || password.isEmpty()) {
                 onResult(false, t("error_fields"))
@@ -251,6 +256,11 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
                     _appLanguage.value = owner.language
                     _appCurrency.value = owner.currency
                     _currentScreen.value = "DASHBOARD"
+                    NotificationHelper.sendNotification(
+                        context = context,
+                        title = "Login Successful",
+                        message = "Welcome back! Merchant ${owner.name} has successfully logged in."
+                    )
                     onResult(true, "Logged in successfully!")
                 },
                 onFailure = { err ->
@@ -289,7 +299,7 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteAccount(passwordInput: String, onResult: (Boolean, String) -> Unit) {
         val owner = _currentOwner.value ?: return
-        if (owner.password != passwordInput.uppercase().trim()) {
+        if (owner.password != passwordInput.trim()) {
             onResult(false, "Incorrect password. Cannot delete account.")
             return
         }
@@ -341,8 +351,8 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
 
     fun updateProfilePassword(onResult: (Boolean, String) -> Unit) {
         val owner = _currentOwner.value ?: return
-        val oldPass = profileOldPassword.value.uppercase().trim()
-        val newPass = profileNewPassword.value.uppercase().trim()
+        val oldPass = profileOldPassword.value.trim()
+        val newPass = profileNewPassword.value.trim()
 
         if (oldPass != owner.password) {
             onResult(false, "Old password incorrect.")
@@ -403,23 +413,34 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
             repository.addCustomer(customer)
             newCustomerName.value = ""
             newCustomerMobile.value = ""
+            NotificationHelper.sendNotification(
+                context = context,
+                title = "Customer Added",
+                message = "Successfully added new customer: $nameInput with ID $uniqueId."
+            )
             onResult(true, t("customer_added") + " Unique ID: $uniqueId")
         }
     }
 
-    fun deleteCustomer(passwordInput: String, onResult: (Boolean, String) -> Unit) {
+    fun deleteCustomer(context: Context, passwordInput: String, onResult: (Boolean, String) -> Unit) {
         val owner = _currentOwner.value ?: return
         val customer = _selectedCustomer.value ?: return
 
-        if (owner.password != passwordInput.uppercase().trim()) {
+        if (owner.password != passwordInput.trim()) {
             onResult(false, "Incorrect password.")
             return
         }
 
         viewModelScope.launch {
             repository.deleteCustomer(customer.uniqueId, owner.email)
+            val customerName = customer.name
             _selectedCustomer.value = null
             _currentScreen.value = "DASHBOARD"
+            NotificationHelper.sendNotification(
+                context = context,
+                title = "Customer Deleted",
+                message = "Successfully deleted customer: $customerName."
+            )
             onResult(true, t("customer_deleted"))
         }
     }
@@ -456,30 +477,23 @@ class EasyBookViewModel(application: Application) : AndroidViewModel(application
             transAmount.value = ""
             transNotes.value = ""
 
-            // Push Notification Scheduling:
-            // "if today add an entry, in 2 days automatically remind using push notifications"
-            // Delay is 2 days (2 * 24 * 60 * 60 * 1000 ms).
-            // For immediate verification, we schedule the real alarm with a 10 seconds delay as well,
-            // so they can see the notification work immediately, while still scheduling the 2-day alarm!
-            val twoDaysMillis = 2L * 24 * 60 * 60 * 1000
+            // Send push notifications on receive (credit) and debit
+            val formattedAmount = String.format("%.2f", amountValue)
+            if (isDebt) {
+                NotificationHelper.sendNotification(
+                    context = context,
+                    title = "Debit Added",
+                    message = "Recorded a debit of ₹$formattedAmount for customer ${customer.name}."
+                )
+            } else {
+                NotificationHelper.sendNotification(
+                    context = context,
+                    title = "Payment Received",
+                    message = "Recorded a received payment of ₹$formattedAmount from customer ${customer.name}."
+                )
+            }
 
-            // Real alarm for 2 days:
-            NotificationHelper.scheduleReminderAlarm(
-                context = context,
-                customerName = customer.name,
-                amount = amountValue,
-                delayMillis = twoDaysMillis
-            )
-
-            // Demo alarm for 8 seconds so they don't have to wait 2 days to test:
-            NotificationHelper.scheduleReminderAlarm(
-                context = context,
-                customerName = customer.name,
-                amount = amountValue,
-                delayMillis = 8000L // 8 seconds
-            )
-
-            onResult(true, t("transaction_added") + " (Reminder scheduled. You will also get a demo push alert in 8s to verify!)")
+            onResult(true, t("transaction_added"))
         }
     }
 
